@@ -50,6 +50,17 @@ namespace Test
         }
 
         [Test]
+        public void Should_Not_Wrap_Null_Values()
+        {
+            var toReflect = new TestObject
+            {
+                
+            };
+            var testReflectObject = new TestReflectObject(toReflect);
+            Assert.Null(testReflectObject.Child);
+        }
+
+        [Test]
         public void Should_Wrap_Permitted_List_Properties_Against_IEnumerable()
         {
             var toReflect = new TestObject
@@ -88,6 +99,39 @@ namespace Test
             Assert.False(yielded);
             Assert.AreEqual("One", toYield.ToList()[0].ChildStringProp);
             Assert.True(yielded);
+        }
+
+        [Test]
+        public void Should_Not_Wrap_Nulls_In_List()
+        {
+            var toReflect = new TestObject
+            {
+                Children = new List<ChildObject> {
+                    new ChildObject { ChildStringProp = "One"},
+                    null
+
+                }
+            };
+            var testReflectObject = new TestReflectObject(toReflect);
+            Assert.Null(testReflectObject.Children[1]);
+        }
+
+        [Test]
+        public void Should_Not_Wrap_Nulls_In_IEnumerable()
+        {
+            IEnumerable<ChildObject> GetYielded()
+            {
+                yield return new ChildObject { ChildStringProp = "One" };
+                yield return null;
+            }
+            var toReflect = new TestObject
+            {
+                YieldedChildren = GetYielded()
+            };
+
+            var testReflectObject = new TestReflectObject(toReflect);
+            var toYield = testReflectObject.YieldedChildren;
+            Assert.Null(toYield.ToList()[1]);
         }
 
         [Test]

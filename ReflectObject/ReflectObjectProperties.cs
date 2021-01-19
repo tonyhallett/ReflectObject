@@ -111,12 +111,13 @@ namespace ReflectObject
 			}
 			return value;
 		}
-		private IEnumerable<T> CreateEnumerable<T>(IEnumerable value)
+		private IEnumerable<T> CreateEnumerable<T>(IEnumerable value) where T:ReflectObjectProperties
 		{
 			var enumerator = (value as IEnumerable).GetEnumerator();
 			while (enumerator.MoveNext())
 			{
-				yield return WrapTyped<T>(enumerator.Current);
+
+				yield return enumerator.Current == null ? null : WrapTyped<T>(enumerator.Current);
 			}
 		}
 		private T WrapTyped<T>(object toReflect)
@@ -166,7 +167,7 @@ namespace ReflectObject
 							var enumerator = (value as IEnumerable).GetEnumerator();
 							while (enumerator.MoveNext())
 							{
-								addMethod.Invoke(list, new object[] { Wrap(genericArgument, enumerator.Current) });
+								addMethod.Invoke(list, new object[] { enumerator.Current == null ? null : Wrap(genericArgument, enumerator.Current) });
 							}
 							value = list;
 
