@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Test
@@ -249,7 +250,55 @@ namespace Test
             Assert.IsTrue(testReflectObject.BoolProp);
             toReflect.BoolProp = false;
             Assert.IsTrue(testReflectObject.BoolProp);
-        }        
+        }
+        
+        [Test]
+        public void PerformanceTest()
+        {
+            var mean = Clock.BenchmarkMeanTime(() =>
+            {
+                var testObject = new TestObject
+                {
+                    Child = new ChildObject
+                    {
+                        ChildStringProp = "Child"
+                    },
+
+                };
+                var testReflect = new TestReflectObject(testObject);
+            });
+
+            
+            //2695.4866000000002d
+            //2671.7920750000003d
+            //2676.6123499999999d
+            //2653.5633249999996d
+            //2627.4981333333335d
+            //choose 2800
+
+            Assert.That(mean, Is.LessThanOrEqualTo(2800));
+            
+        }
+
+        //[Test] - run this and update time above
+        public void PerformanceBaitTest() // https://stackoverflow.com/questions/15181358/how-can-i-unit-test-performance-optimisations-in-c
+        {
+            var mean = Clock.BenchmarkMeanTime(() =>
+            {
+                var testObject = new TestObject
+                {
+                    Child = new ChildObject
+                    {
+                        ChildStringProp = "Child"
+                    },
+
+                };
+                var testReflect = new TestReflectObject(testObject);
+            });
+            
+            Assert.That(mean, Is.LessThanOrEqualTo(0));
+
+        }
     }
 
     
