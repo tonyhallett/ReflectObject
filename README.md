@@ -25,6 +25,7 @@ class SomeType: ReflectObjectProperties{
 ```
 
 By default properties are reflected with ```BindingFlags.Public | BindingFlags.Instance``` ( and with the same name ).  Apply the ReflectFlagsAttribute to change this behaviour.
+**Any additional public properties on your derivation of ReflectObjectProperties must be ignored by applying the Ignore attribute.**
 
 It is also possible to have a tree of objects.  For instance.
 
@@ -139,10 +140,6 @@ class SomeType:ReflectObjectProperties{
 
 Because Func/Action properties of ReflectObjectProperties are treated as methods you need to specify when they are to be treated as properties.
 You must apply the ```DelegatePropertyAttribute``` to the property.
-
-**For now do not add any additional public properties on your derivation of ReflectObjectProperties.**
-
-Todo: provide Exclude attribute or do not throw when properties do not exist on the reflected object type.
 
 Finally, there are two properties related to the object being reflected.  ReflectedObject and ReflectedType.
 

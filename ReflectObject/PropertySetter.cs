@@ -5,16 +5,12 @@ using System.Reflection;
 
 namespace ReflectObject
 {
-    internal class PropertySetter : IPropertySetter
-    {
-        private readonly PropertyInfo ownProperty;
-        private readonly BindingFlags bindingFlags;
-        private readonly PropertyInfo reflectedProperty;
+    internal class PropertySetter : PropertySetterBase<PropertyInfo>
+	{
 		private static Type listType = typeof(List<>);
 		private static Type enumerableTTYpe = typeof(IEnumerable<>);
 		private static MethodInfo createEnumerableMethodInfo;
 		private Func<object, object> coerceValue;
-		private Type ownPropertyType;
 		private Action<object, object> ownPropertySetter;
 
 		static PropertySetter()
@@ -22,25 +18,20 @@ namespace ReflectObject
 			createEnumerableMethodInfo = typeof(PropertySetter).GetMethod(nameof(CreateEnumerable), BindingFlags.NonPublic | BindingFlags.Instance);
 		}
 
-		public PropertySetter(PropertyInfo ownProperty, BindingFlags bindingFlags,Type reflectedType)
+		public PropertySetter(PropertyInfo ownProperty, BindingFlags bindingFlags,Type reflectedType):base(ownProperty, bindingFlags,reflectedType)
         {
-            this.ownProperty = ownProperty;
-            this.bindingFlags = bindingFlags;
-			reflectedProperty = reflectedType.GetProperty(ownProperty.Name, bindingFlags);
-			ownPropertyType = ownProperty.PropertyType;
+			
 		}
-        public void Set(ReflectObjectProperties wrapper, object reflectedObject)
+		
+        protected override object GetPropertyValue(ReflectObjectProperties wrapper, object reflectedObject)
         {
-			var value = ReflectedPropertyValue(reflectedObject);
+			var value = reflectedMember.GetValue(reflectedObject);
 			if (value != null)
 			{
 				value = CoerceValue(value);
-				if (ownPropertySetter == null)
-				{
-					ownPropertySetter = PropertySetterHelper.BuildSetAccessor(ownProperty.GetSetMethod(true));
-				}
-				ownProperty.SetValue(wrapper, value);
+				
 			}
+			return value;
 		}
 		internal object Wrap(Type type, object toReflect)
 		{
@@ -129,16 +120,11 @@ namespace ReflectObject
 			
 			return coerceValue(value);
 		}
-		private object ReflectedPropertyValue(object reflectedObject)
-		{
-			object value = null;
-			
-			if (reflectedProperty != null)
-			{
-				value = reflectedProperty.GetValue(reflectedObject);
-			}
-			return value;
-		}
-	}
+
+        protected override PropertyInfo GetMember(string memberName)
+        {
+			return reflectedType.GetProperty(memberName, bindingFlags);
+        }
+    }
 
 }

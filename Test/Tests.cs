@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using ReflectObject;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -268,7 +269,35 @@ namespace Test
             var testReflectObject2 = new TestReflectObject(toReflect2);
             Assert.IsFalse(testReflectObject2.BoolProp);
         }
-        
+
+        [Test]
+        public void Should_Throw_For_Additional_Property_Not_Present_On_Reflected()
+        {
+            //todo test the message
+            Assert.Throws<PropertyDoesNotExistException>(() =>
+            {
+                var reflectObject = new ReflectObjectWithAdditionalProperty(new object());
+            });
+        }
+
+        [Test]
+        public void Should_Throw_For_Additional_Func_Not_Present_On_Reflected()
+        {
+            Assert.Throws<PropertyDoesNotExistException>(() =>
+            {
+                var reflectObject = new ReflectObjectWithAdditionalFunc(new object());
+            });
+        }
+
+        [Test]
+        public void Should_Not_Throw_For_Additional_Properties_If_Ignore_With_Attribute()
+        {
+            Assert.DoesNotThrow(() =>
+            {
+                var reflectObject = new ReflectObjectWithAdditionalSafeProperties(new object());
+            });
+        }
+
         [Test]
         public void PerformanceTest()
         {

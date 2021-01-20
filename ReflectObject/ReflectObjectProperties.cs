@@ -96,7 +96,7 @@ namespace ReflectObject
 		{
 			var excludeProperties = new List<string> { nameof(ReflectedObject), nameof(ReflectedType) };
 			var ownProperties = this.GetType().GetProperties();
-			return ownProperties.Where(p => !excludeProperties.Contains(p.Name));
+			return ownProperties.Where(p => !excludeProperties.Contains(p.Name)).Where(p => p.GetCustomAttribute<IgnoreAttribute>() == null);
 		}
 
 		internal static bool IsReflectObjectPropertiesType(Type type)
