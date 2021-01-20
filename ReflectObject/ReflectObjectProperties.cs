@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -8,12 +9,10 @@ namespace ReflectObject
 {
     public abstract class ReflectObjectProperties
 	{
-		private static MethodInfo createEnumerableMethodInfo;
 		private const BindingFlags defaultBindingFlags = BindingFlags.Instance | BindingFlags.Public;
 		public object ReflectedObject { get; }
 		public Type ReflectedType { get; }
-		private static Type listType = typeof(List<>);
-		private static Type enumerableTTYpe = typeof(IEnumerable<>);
+		
 		//Defined up to 8 parameters
 		private static List<Type> funcTypes = new List<Type>
 		{
@@ -23,46 +22,37 @@ namespace ReflectObject
 		{
 			typeof(Action),typeof(Action<>),typeof(Action<,>),typeof(Action<,,>),typeof(Action<,,,>),typeof(Action<,,,,>),typeof(Action<,,,,,>),typeof(Action<,,,,,,>),typeof(Action<,,,,,,,>)
 		};
+		private static ConcurrentDictionary<Type, List<IPropertySetter>> cache = new ConcurrentDictionary<Type, List<IPropertySetter>>();
 
-		static ReflectObjectProperties()
-		{
-			createEnumerableMethodInfo = typeof(ReflectObjectProperties).GetMethod(nameof(CreateEnumerable), BindingFlags.NonPublic | BindingFlags.Instance);
-
-		}
 		public ReflectObjectProperties(object toReflect)
 		{
 			ReflectedObject = toReflect;
 			ReflectedType = toReflect.GetType();
-			foreach (var ownProperty in GetOwnSettableProperties())
-			{
-				var bindingFlags = GetBindingFlags(ownProperty);
-				var isAction = FuncActionPropertyCheck(ownProperty.PropertyType);
-				if (isAction.HasValue && !FuncActionPropertyIsProperty(ownProperty))
-				{
-					var value = WrapFuncOrAction(ownProperty, isAction.Value,bindingFlags);
-					ownProperty.SetValue(this, value);
-				}
-				else
-				{
-					var value = ReflectedPropertyValue(ownProperty.Name, bindingFlags);
-					if (value != null)
-					{
-						value = CoerceValue(value, ownProperty.PropertyType);
-						ownProperty.SetValue(this, value);
-					}
-				}
+			var thisType = this.GetType();
 
-			}
+			var setters = cache.GetOrAdd(thisType, (_) =>
+			{
+				return GetOwnSettableProperties().Select(ownProperty =>
+				{
+					IPropertySetter propertySetter = null;
+					var bindingFlags = GetBindingFlags(ownProperty);
+					var isAction = FuncActionPropertyCheck(ownProperty.PropertyType);
+					if (isAction.HasValue && !FuncActionPropertyIsProperty(ownProperty))
+					{
+						propertySetter = new MethodSetter(ownProperty, isAction.Value, bindingFlags, ReflectedType);
+                    }
+                    else
+                    {
+						propertySetter = new PropertySetter(ownProperty, bindingFlags, ReflectedType);
+					}
+					return propertySetter;
+
+				}).ToList();
+			});
+			
+			setters.ForEach(setter => setter.Set(this, ReflectedObject));
 		}
 
-		private Delegate WrapFuncOrAction(PropertyInfo ownProperty, bool isAction,BindingFlags bindingFlags)
-        {
-			var genericTypeArguments = ownProperty.PropertyType.GenericTypeArguments;
-			var parameterTypes = isAction ? genericTypeArguments : genericTypeArguments.Take(genericTypeArguments.Length-1).ToArray();
-			var methodInfo = ReflectedType.GetMethod(ownProperty.Name, bindingFlags, null, parameterTypes, new ParameterModifier[] { });
-			return MethodWrapper.CreateDelegateWrapper(methodInfo, ReflectedObject, ownProperty.PropertyType, isAction);
-        }
-		
 		private bool FuncActionPropertyIsProperty(PropertyInfo property)
         {
 			return property.GetCustomAttribute<DelegatePropertyAttribute>() != null;
@@ -101,100 +91,31 @@ namespace ReflectObject
 			}
 			return bindingFlags;
 		}
-		private object ReflectedPropertyValue(string propertyName, BindingFlags bindingFlags)
-		{
-			object value = null;
-			var reflectedProperty = ReflectedType.GetProperty(propertyName, bindingFlags);
-			if (reflectedProperty != null)
-			{
-				value = reflectedProperty.GetValue(ReflectedObject);
-			}
-			return value;
-		}
-		private IEnumerable<T> CreateEnumerable<T>(IEnumerable value) where T:ReflectObjectProperties
-		{
-			var enumerator = (value as IEnumerable).GetEnumerator();
-			while (enumerator.MoveNext())
-			{
 
-				yield return enumerator.Current == null ? null : WrapTyped<T>(enumerator.Current);
-			}
-		}
-		private T WrapTyped<T>(object toReflect)
-        {
-			return (T)Wrap(typeof(T), toReflect);
-		}
-		private object Wrap(Type type,object toReflect)
-        {
-			return Activator.CreateInstance(type, toReflect);
-		}
-		
-		private bool IsReflectObjectPropertiesType(Type type)
-		{
-			return typeof(ReflectObjectProperties).IsAssignableFrom(type);
-		}
-
-		private object CoerceValue(object value, Type ownPropertyType)
-		{
-			if (IsReflectObjectPropertiesType(ownPropertyType))
-			{
-				value = Wrap(ownPropertyType, value);
-			}
-			else
-			{
-				/*
-					implement another time - List<> and IEnumerable<> will be sufficient
-					if (ownPropertyType.IsArray)
-					{
-						var elementType = ownPropertyType.GetElementType();
-						...
-
-					}
-				*/
-				if (ownPropertyType.IsGenericType)
-				{
-					var genericArguments = ownPropertyType.GetGenericArguments();
-					var genericArgument = genericArguments[0];
-					if (genericArguments.Length == 1 && IsReflectObjectPropertiesType(genericArgument))
-					{
-						var genericTypeDefinitionType = ownPropertyType.GetGenericTypeDefinition();
-
-						if (genericTypeDefinitionType == listType)
-						{
-							var listType = typeof(List<>).MakeGenericType(genericArgument);
-							var addMethod = listType.GetMethod("Add");
-							var list = Activator.CreateInstance(listType);
-							var enumerator = (value as IEnumerable).GetEnumerator();
-							while (enumerator.MoveNext())
-							{
-								addMethod.Invoke(list, new object[] { enumerator.Current == null ? null : Wrap(genericArgument, enumerator.Current) });
-							}
-							value = list;
-
-						}
-						else if (genericTypeDefinitionType == enumerableTTYpe)
-						{
-							value = GetCreateEnumerableMethodInfo(genericArgument).Invoke(this, new object[] { value });
-						}
-					}
-
-
-				}
-
-			}
-			return value;
-		}
 		private IEnumerable<PropertyInfo> GetOwnSettableProperties()
 		{
 			var excludeProperties = new List<string> { nameof(ReflectedObject), nameof(ReflectedType) };
 			var ownProperties = this.GetType().GetProperties();
 			return ownProperties.Where(p => !excludeProperties.Contains(p.Name));
 		}
-		private MethodInfo GetCreateEnumerableMethodInfo(Type type)
+
+		internal static bool IsReflectObjectPropertiesType(Type type)
 		{
-			return createEnumerableMethodInfo.MakeGenericMethod(type);
+			return typeof(ReflectObjectProperties).IsAssignableFrom(type);
 		}
 		
+		public static void ClearCache()
+		{
+			cache = new ConcurrentDictionary<Type, List<IPropertySetter>>();
+		}
+		public static void ClearCache(Type reflectObjectPropertiesType)
+        {
+            if (cache.ContainsKey(reflectObjectPropertiesType))
+            {
+				cache.TryRemove(reflectObjectPropertiesType, out _);
+            }
+        }
+
 	}
 
 }

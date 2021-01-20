@@ -1,7 +1,6 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace Test
@@ -199,8 +198,8 @@ namespace Test
             var possibleArguments = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8 };
             for(var i = 0; i < remainingActionDelegates.Count; i++)
             {
-                var arguments = possibleArguments.Take(i + 1);
-                remainingActionDelegates[i].Method.Invoke(remainingActionDelegates[i].Target,arguments.Select(arg=>(object)arg).ToArray());
+                var arguments = possibleArguments.Take(i + 1).Select(i=>(object)i).ToArray();
+                remainingActionDelegates[i].DynamicInvoke(arguments);
                 Assert.AreEqual(arguments, toReflect.DelegateArguments);
 
             }
@@ -231,8 +230,8 @@ namespace Test
             var possibleArguments = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8 };
             for (var i = 0; i < remainingActionDelegates.Count; i++)
             {
-                var arguments = possibleArguments.Take(i + 1);
-                var result = remainingActionDelegates[i].Method.Invoke(remainingActionDelegates[i].Target, arguments.Select(arg => (object)arg).ToArray());
+                var arguments = possibleArguments.Take(i + 1).Select(i => (object)i).ToArray();
+                var result = remainingActionDelegates[i].DynamicInvoke(arguments);
                 Assert.AreEqual(arguments, toReflect.DelegateArguments);
                 Assert.AreEqual(result, i+1);
 
@@ -250,6 +249,24 @@ namespace Test
             Assert.IsTrue(testReflectObject.BoolProp);
             toReflect.BoolProp = false;
             Assert.IsTrue(testReflectObject.BoolProp);
+        }
+
+        [Test]
+        public void Should_Work_With_Multiple_Instances()
+        {
+            var toReflect1 = new TestObject
+            {
+                BoolProp = true
+            };
+            var testReflectObject1 = new TestReflectObject(toReflect1);
+            Assert.IsTrue(testReflectObject1.BoolProp);
+
+            var toReflect2 = new TestObject
+            {
+                BoolProp = false
+            };
+            var testReflectObject2 = new TestReflectObject(toReflect2);
+            Assert.IsFalse(testReflectObject2.BoolProp);
         }
         
         [Test]
@@ -269,36 +286,28 @@ namespace Test
             });
 
             
-            //2695.4866000000002d
-            //2671.7920750000003d
-            //2676.6123499999999d
-            //2653.5633249999996d
-            //2627.4981333333335d
-            //choose 2800
-
-            Assert.That(mean, Is.LessThanOrEqualTo(2800));
+            Assert.That(mean, Is.LessThanOrEqualTo(1200));
             
         }
 
-        //[Test] - run this and update time above
-        public void PerformanceBaitTest() // https://stackoverflow.com/questions/15181358/how-can-i-unit-test-performance-optimisations-in-c
-        {
-            var mean = Clock.BenchmarkMeanTime(() =>
-            {
-                var testObject = new TestObject
-                {
-                    Child = new ChildObject
-                    {
-                        ChildStringProp = "Child"
-                    },
+        //[Test]// - uncomment and run this and update time above if change is more performant
+        //public void PerformanceBaitTest() // https://stackoverflow.com/questions/15181358/how-can-i-unit-test-performance-optimisations-in-c
+        //{
+        //    var mean = Clock.BenchmarkMeanTime(() =>
+        //    {
+        //        var testObject = new TestObject
+        //        {
+        //            Child = new ChildObject
+        //            {
+        //                ChildStringProp = "Child"
+        //            },
 
-                };
-                var testReflect = new TestReflectObject(testObject);
-            });
-            
-            Assert.That(mean, Is.LessThanOrEqualTo(0));
+        //        };
+        //        var testReflect = new TestReflectObject(testObject);
+        //    });
+        //    Assert.That(mean, Is.LessThanOrEqualTo(0));
 
-        }
+        //}
     }
 
     

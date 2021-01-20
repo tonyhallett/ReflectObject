@@ -43,7 +43,7 @@ namespace ReflectObject
 		{
 			var methodWrapper = new MethodWrapper(wrappedMethod, owner);
 			var genericArguments = funcOrActionType.GetGenericArguments();
-			MethodInfo wrapMethod = null;
+            MethodInfo wrapMethod;
             if (isAction)
             {
 				if(genericArguments.Length == 0)
