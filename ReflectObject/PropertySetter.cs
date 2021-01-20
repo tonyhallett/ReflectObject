@@ -11,7 +11,6 @@ namespace ReflectObject
 		private static Type enumerableTTYpe = typeof(IEnumerable<>);
 		private static MethodInfo createEnumerableMethodInfo;
 		private Func<object, object> coerceValue;
-		private Action<object, object> ownPropertySetter;
 
 		static PropertySetter()
 		{

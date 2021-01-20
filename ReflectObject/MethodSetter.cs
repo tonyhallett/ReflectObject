@@ -7,7 +7,6 @@ namespace ReflectObject
     internal class MethodSetter : PropertySetterBase<MethodInfo>
     {
         private readonly bool isAction;
-		private Action<object, object> ownPropertySetter;
 
 		public MethodSetter(PropertyInfo ownProperty,bool isAction, BindingFlags bindingFlags, Type reflectedType):base(ownProperty, bindingFlags,reflectedType)
         {
