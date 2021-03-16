@@ -141,6 +141,12 @@ class SomeType:ReflectObjectProperties{
 Because Func/Action properties of ReflectObjectProperties are treated as methods you need to specify when they are to be treated as properties.
 You must apply the ```DelegatePropertyAttribute``` to the property.
 
+Behaviour when the member does not exist on the reflected type :
+
+By default a PropertyDoesNotExistException will be thrown but this can be controlled by adding attributes.
+Add DoNotThrowMissingMembers to the class or struct implementing ReflectObjectProperties or 
+add DoNotThrowMissingMember to a property.
+
 Finally, there are two properties related to the object being reflected.  ReflectedObject and ReflectedType.
 
 

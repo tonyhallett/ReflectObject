@@ -9,6 +9,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/tonyhallett/ReflectObject</PackageProjectUrl>
     <PackageTags>Reflection</PackageTags>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
 </Project>
