@@ -22,37 +22,58 @@ namespace ReflectObject
 				return ownPropertySetter;
 			}
         }
-
+		private bool throwOnMissingMember;
 		public PropertySetterBase(PropertyInfo ownProperty, BindingFlags bindingFlags, Type reflectedType)
 		{
 			this.ownProperty = ownProperty;
 			this.bindingFlags = bindingFlags;
 			this.reflectedType = reflectedType;
 			ownPropertyType = ownProperty.PropertyType;
+			SetThrowOnMissingMember();
 		}
+
+		private void SetThrowOnMissingMember()
+        {
+			var doNotThrowMissingMembersAttribute = ownProperty.DeclaringType.GetCustomAttribute<DoNotThrowMissingMembersAttribute>();
+			if(doNotThrowMissingMembersAttribute != null)
+            {
+				throwOnMissingMember = false;
+            }
+            else
+            {
+				var doNotThrowMissingMemberAttribute = ownProperty.GetCustomAttribute<DoNotThrowMissingMemberAttribute>();
+				throwOnMissingMember = doNotThrowMissingMemberAttribute == null;
+            }
+        }
+		
 
 		public void Set(ReflectObjectProperties wrapper, object reflectedObject)
         {
-			EnsureMemberExists();
-			var value = GetPropertyValue(wrapper, reflectedObject);
-			if(value != null)
+			var memberExists = MemberExists();
+            if (memberExists)
             {
-				OwnPropertySetter(wrapper, value);
-            }
+				var value = GetPropertyValue(wrapper, reflectedObject);
+				if (value != null)
+				{
+					OwnPropertySetter(wrapper, value);
+				}
+			}
+			
 		}
 
 		protected abstract TMember GetMember(string memberName);
 		
 		protected abstract object GetPropertyValue(ReflectObjectProperties wrapper, object reflectedObject);
 
-        private void EnsureMemberExists()
+        private bool MemberExists()
         {
 			var memberName = ownProperty.Name;
 			reflectedMember = GetMember(memberName);
-			if (reflectedMember == null)
+			if (reflectedMember == null && throwOnMissingMember)
 			{
 				throw PropertyDoesNotExistException.Create(reflectedType, memberName, bindingFlags);
 			}
+			return reflectedMember != null;
 		}
     }
 

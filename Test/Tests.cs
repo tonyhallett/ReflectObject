@@ -280,6 +280,24 @@ namespace Test
             });
         }
 
+        [Test] 
+        public void Should_Not_Throw_For_Additional_Property_Not_Present_On_Reflected_When_DoNotThrowMissingMembers()
+        {
+            Assert.DoesNotThrow(() =>
+            {
+                var reflectObject = new ReflectObjectWithAdditionalPropertyOkMissingMembers(new object());
+            });
+        }
+
+        [Test]
+        public void Should_Not_Throw_For_Additional_Property_Not_Present_On_Reflected_When_DoNotThrowMissingMember()
+        {
+            Assert.DoesNotThrow(() =>
+            {
+                var reflectObject = new ReflectObjectWithAdditionalPropertyOkMissingMember(new object());
+            });
+        }
+
         [Test]
         public void Should_Throw_For_Additional_Func_Not_Present_On_Reflected()
         {
@@ -298,46 +316,6 @@ namespace Test
             });
         }
 
-        [Test]
-        public void PerformanceTest()
-        {
-            var mean = Clock.BenchmarkMeanTime(() =>
-            {
-                var testObject = new TestObject
-                {
-                    Child = new ChildObject
-                    {
-                        ChildStringProp = "Child"
-                    },
-
-                };
-                var testReflect = new TestReflectObject(testObject);
-            });
-
-            
-            Assert.That(mean, Is.LessThanOrEqualTo(1200));
-            
-        }
-
-        //[Test]// - uncomment and run this and update time above if change is more performant
-        //public void PerformanceBaitTest() // https://stackoverflow.com/questions/15181358/how-can-i-unit-test-performance-optimisations-in-c
-        //{
-        //    var mean = Clock.BenchmarkMeanTime(() =>
-        //    {
-        //        var testObject = new TestObject
-        //        {
-        //            Child = new ChildObject
-        //            {
-        //                ChildStringProp = "Child"
-        //            },
-
-        //        };
-        //        var testReflect = new TestReflectObject(testObject);
-        //    });
-        //    Assert.That(mean, Is.LessThanOrEqualTo(0));
-
-        //}
     }
 
-    
 }
